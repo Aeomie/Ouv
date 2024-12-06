@@ -1,60 +1,60 @@
-(* Part 1 *)
-type monome = Mono of int * int;;
-type polynome = Poly of monome list;;
+  (* Part 1 *)
+  type monome = Mono of int * int;;
+  type polynome = Poly of monome list;;
 
-(* QS 1.2 *) 
+  (* QS 1.2 *) 
 
-let rec insert_poly list p =
-  match list with
-  | [] -> [p]  (* If the list is empty, insert the monomial p *)
-  | Mono(a, b) :: reste -> 
-      (* Direct pattern matching of p *)
+  let rec insert_poly list p =
+    match list with
+    | [] -> [p]  (* If the list is empty, insert the monomial p *)
+    | Mono(a, b) :: reste -> 
+        (* Direct pattern matching of p *)
+        match p with
+        | Mono(a_p, b_p) -> 
+            if a + a_p = 0 then 
+              reste (* if equals 0, ignore the monomial *)
+            else if b = b_p then (* If the powers are the same, add the coefficients *)
+              Mono(a + a_p, b) :: reste  (* Update the coefficient and keep the rest of the list *)
+            else
+              Mono(a, b) :: insert_poly reste p  (* Otherwise, keep the current monomial and recurse *)
+
+  (* Canonical form function to combine terms with the same power, sort by power and remove the elements with a coeff = 0 *)
+  let canonique p = 
+    let rec aux_func p list = 
       match p with
-      | Mono(a_p, b_p) -> 
-          if a + a_p = 0 then 
-            reste (* if equals 0, ignore the monomial *)
-          else if b = b_p then (* If the powers are the same, add the coefficients *)
-            Mono(a + a_p, b) :: reste  (* Update the coefficient and keep the rest of the list *)
-          else
-            Mono(a, b) :: insert_poly reste p  (* Otherwise, keep the current monomial and recurse *)
+      | [] -> list
+      | hd :: t -> aux_func t (insert_poly list hd)
+    in 
+    List.sort (fun (Mono(_, d1)) (Mono(_, d2)) -> compare d1 d2) (aux_func p []);;
 
-(* Canonical form function to combine terms with the same power, sort by power and remove the elements with a coeff = 0 *)
-let canonique p = 
-  let rec aux_func p list = 
-    match p with
-    | [] -> list
-    | hd :: t -> aux_func t (insert_poly list hd)
-  in 
-  List.sort (fun (Mono(_, d1)) (Mono(_, d2)) -> compare d1 d2) (aux_func p []);;
+  (* Example polynomial *)
+  let poly = [Mono(3, 2); Mono(4, 1); Mono(2, 2); Mono(5, 0)] ;;
+  canonique poly;;
 
-(* Example polynomial *)
-let poly = [Mono(3, 2); Mono(4, 1); Mono(2, 2); Mono(5, 0)] ;;
-canonique poly;;
+  (* QS 1.3: Addition of two polynomials *)
+  let poly2 = [Mono(5, 2); Mono(8, 1); Mono(6, 2); Mono(3, 0)] ;;
 
-(* QS 1.3: Addition of two polynomials *)
-let poly2 = [Mono(5, 2); Mono(8, 1); Mono(6, 2); Mono(3, 0)] ;;
+  let rec poly_add p1 p2 =
+    let aux q1 q2 = 
+      match p1 with
+      | [] -> q2
+      | hd :: reste -> poly_add reste (insert_poly q2 hd)
+    in canonique (aux p1 p2);;
 
-let rec poly_add p1 p2 =
-  let aux q1 q2 = 
+  (* Test the addition of two canonical polynomials *)
+  poly_add (canonique poly) (canonique poly2);;
+
+  (* QS 1.4: Multiplication of two polynomials *)
+  let rec poly_prod p1 p2 =
+    let rec apply_prod monome polynome = 
+      match monome, polynome with
+      | _,[] -> [] 
+      | Mono(p1_a, p1_b), Mono(p2_a, p2_b) :: t 
+        -> Mono(p1_a * p2_a, p1_b + p2_b) :: apply_prod monome t
+    in 
     match p1 with
-    | [] -> q2
-    | hd :: reste -> poly_add reste (insert_poly q2 hd)
-  in canonique (aux p1 p2);;
-
-(* Test the addition of two canonical polynomials *)
-poly_add (canonique poly) (canonique poly2);;
-
-(* QS 1.4: Multiplication of two polynomials *)
-let rec poly_prod p1 p2 =
-  let rec apply_prod monome polynome = 
-    match monome, polynome with
-    | _,[] -> [] 
-    | Mono(p1_a, p1_b), Mono(p2_a, p2_b) :: t 
-      -> Mono(p1_a * p2_a, p1_b + p2_b) :: apply_prod monome t
-  in 
-  match p1 with
-  | [] -> []
-  | h::t -> poly_add (apply_prod h p2) (poly_prod t p2);;
+    | [] -> []
+    | h::t -> poly_add (apply_prod h p2) (poly_prod t p2);;
 
 (* Test the addition of two canonical polynomials *)
 poly_add (canonique poly) (canonique poly2);;
@@ -456,6 +456,115 @@ let generate_n_abr_v2 n =
 let list_ABR3 = generate_n_abr_v2 5;;
 let transformed_ABR_list3 = transform_ABR list_ABR3;; 
 
+(* Karatsuba*)
+(* Multiplie le polynome poly par n  *)
+let multn poly n =
+  let rec aux poly tmp =
+    match poly with
+    | [] -> List.rev tmp
+    | Mono(a, b) :: t -> aux t (Mono(a * n, b) :: tmp)
+  in aux poly [];;
+
+(* Exponentiate the degree of each term in the polynomial *)
+let multExpo poly n = 
+  let rec aux poly tmp = 
+    match poly with
+    | [] -> List.rev tmp
+    | Mono(a,b) :: t -> aux t (Mono(a, b + n) :: tmp)
+  in aux poly [];;
+
+(* retrieves highest degree in poly*)
+let degre poly = 
+  let sorted = List.rev (  poly) in
+  match sorted with
+  | [] -> -1           (* If the list is empty, return None *)
+  | Mono(_, b) :: _ -> b;;  (* Get the highest degree (b) from the first element *)
+
+(* Helper function to split a polynomial into two halves *) 
+(*
+let split_poly poly k =
+  let rec aux left right = function
+    | [] -> (List.rev left, List.rev right)  (* When the input list is empty, return the reversed left and right parts *)
+    | Mono(a, b) :: t ->  (* For each monomial, check its degree b *)
+        if b < k then     (* If the degree is less than k, add it to the left part *)
+          aux (Mono(a,b) :: left) right t
+        else              (* If the degree is greater or equal to k, add it to the right part *)
+          aux left (Mono(a,b) :: right) t
+  in aux [] [] poly  (* Start the recursion with two empty lists (left and right) *)
+*)
+(* Helper function to split a polynomial into two halves based on number of terms *)
+let split_poly poly k =
+  let rec aux left right n = function
+    | [] -> (List.rev left, List.rev right)  (* Return the reversed left and right parts when done *)
+    | Mono(a, b) :: t when n < k -> aux (Mono(a, b) :: left) right (n + 1) t
+    | Mono(a, b) :: t -> aux left (Mono(a, b) :: right) (n + 1) t
+  in
+  aux [] [] 0 poly  (* Start the recursion with two empty lists and count from 0 *)
+
+(*
+(* Karatsuba algorithm for multiplying polynomials *)
+let rec mult_karatsuba poly1 poly2 =
+  (* Base case for empty polynomials (degree 0) *)
+  if (degre poly1 = 0 || degre poly2 = 0) then
+    [Mono(0,0)] (* Direct multiplication for degree 1 polynomials *)
+  (* Base case for degree 1 polynomials (single monomial multiplication) *)
+  else if (degre poly1 = 1 && degre poly2 = 1) then
+    poly_prod poly1 poly2  (* Direct multiplication for degree 1 polynomials *)
+  else
+    let k = max (degre poly1) (degre poly2) in  (* Determine the degree *)
+    let (a0, a1) = split_poly poly1 (k / 2) in
+    let (b0, b1) = split_poly poly2 (k / 2) in
+    let c1 = mult_karatsuba a0 b0 in  (* Recursive multiplication for lower half *) (* to do a0*b0 equation *)
+    let c2 = mult_karatsuba a1 b1 in  (* Recursive multiplication for upper half *) (* to do a1*b1 equation *)
+    let c3 = poly_add a1 a0 in  (* Sum a1 + a0 *)
+    let c4 = poly_add b1 b0 in  (* Sum b1 + b0 *)
+    let u = mult_karatsuba c3 c4 in  (* Multiply the sums *) (* to do b1 + b0 *)
+    let c5 = poly_add (poly_add u (multn c2 (-1))) (multn c1 (-1)) (* to do  (a1 + a0) (b1 + b0) - a1b1 - a0b0*) in
+    let c6 = multExpo c2 (k / 2) in (*this is the a1b1 * x *)
+    poly_add (poly_add c5 c6 ) c1;; (* adding all results*)
+
+*)
+(* Karatsuba algorithm for multiplying polynomials *)
+let rec mult_karatsuba poly1 poly2 =
+  (* Base case for empty polynomials (degree 0) *)
+  if(degre poly1 = -1 || degre poly2 = -1 ) then 
+    []
+  else if (degre poly1 = 0 || degre poly2 = 0) then
+    poly_prod poly1 poly2 (* Direct multiplication for degree 1 polynomials *)
+  (* Base case for degree 1 polynomials (single monomial multiplication) *)
+  else if (degre poly1 = 1 && degre poly2 = 1) then
+    poly_prod poly1 poly2  (* Direct multiplication for degree 1 polynomials *)
+  else
+    let k = max (degre poly1) (degre poly2) in  (* Determine the degree *)
+    let half = k / 2 in
+    let (a0, a1) = split_poly poly1 half in
+    let (b0, b1) = split_poly poly2 half in
+    let c1 = mult_karatsuba a0 b0 in  (* Recursive multiplication for lower half *)
+    let c2 = mult_karatsuba a1 b1 in  (* Recursive multiplication for upper half *)
+    let c3 = poly_add a1 a0 in  (* Sum a1 + a0 *)
+    let c4 = poly_add b1 b0 in  (* Sum b1 + b0 *)
+    let u = mult_karatsuba c3 c4 in  (* Multiply the sums *)
+    let c5 = poly_add (poly_add u (multn c2 (-1))) (multn c1 (-1)) in
+    let c6 = multExpo c2 half in (* Shift the a1b1 result *)
+    poly_add (poly_add c5 c6) c1;; (* Add all results together *)
+
+
+let poly2 = [
+  Mono (2, 4);  (* 2x^4 *)
+  Mono (-3, 3); (* -3x^3 *)
+  Mono (6, 2);  (* 6x^2 *)
+  Mono (8, 1);  (* 8x^1 *)
+  Mono (-5, 0); (* -5 *)
+];;
+
+let poly1 = [
+  Mono (3, 6);  (* 3x^6 *)
+  Mono (5, 5);  (* 5x^5 *)
+  Mono (-2, 4); (* -2x^4 *)
+  Mono (4, 3);  (* 4x^3 *)
+  Mono (1, 1);  (* 1x^1 *)
+  Mono (7, 0);  (* 7 *)
+];;
 (* QS 2.17 & QS 2.18 : mêmes méthodes que 2.14 et 2.15 *) 
 
 let fullTestList_v2a = transform_ABR (generate_n_abr_v2 7);;
