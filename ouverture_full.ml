@@ -83,22 +83,7 @@ let expr_tree =
     Int 42;
     Pow [Var "x";Int 3]
   ];;
-
-(* QS 1.7 *)
-(*rec arb2poly expr_tree = match expr_tree with
-   | Int n -> [Mono(n, 0)]
-   | Pow n -> [Mono(1, n)]
-   | Add childrens -> 
-       let rec add_polys kids list = 
-         match kids with
-         | [] -> list
-         | hd :: tl -> 
-             let poly_hd = arb2poly hd in  (* Convert the subtree into a polynomial *)
-             add_polys tl (canonique (poly_hd @ list))  (* Add the polynomial to the list and recurse *)
-       in
-       add_polys childrens [];
-   | Mul  -> poly_prod (canonique(expr_tree mul)) (canonique (expr_tree node))*)
-              
+             
 (* QS 1.7*)
 let rec arb2poly expr_tree =
   match expr_tree with 
@@ -207,7 +192,7 @@ let gen_permutation n =
     else fill_list (extraction_alea l p)
   in fill_list (generate_list n 1,[]);;
 
-gen_permutation 10;; 
+gen_permutation 10;;  
 
 (* QS 1.10 *)
 type 'a btree =
@@ -559,7 +544,7 @@ let poly2 = [
 
 let poly1 = [
   Mono (3, 6);  (* 3x^6 *)
-  Mono (5, 5);  (* 5x^5 *)
+  Mono (5, 5); g (* 5x^5 *)
   Mono (-2, 4); (* -2x^4 *)
   Mono (4, 3);  (* 4x^3 *)
   Mono (1, 1);  (* 1x^1 *)
@@ -582,3 +567,204 @@ let real3_v2 = time add_n_tree_to_poly_divide fullTestList_v2c;;
 let real4_v2 = time prod_n_tree_to_poly_naive fullTestList_v2a;;
 let real5_v2 = time prod_n_tree_to_poly_fusion fullTestList_v2a;;
 let real6_v2 = time prod_n_tree_to_poly_divide fullTestList_v2a;;
+
+(* FFT algorithm*)
+type monome = int * int;;  (* (coefficient, exponent) *)
+type polynome = monome list;;  (* List of monomials *)
+(* Convert a polynomial to an array of coefficients (padded with zeros) *)
+let poly_to_coeffs p n =
+  let coeffs = Array.make n 0 in
+  List.iter (fun (c, e) -> 
+    if e < n then coeffs.(e) <- c) p;
+  coeffs;;
+
+(* Convert an array of coefficients back to a polynomial *)
+let coeffs_to_poly coeffs =
+  let mons = Array.to_list coeffs |> List.mapi (fun i c -> if c != 0 then Some (c, i) else None)
+               |> List.filter_map Fun.id in
+  mons;;
+
+(* The FFT function (using Cooley-Tukey algorithm) *)
+let rec fft a =
+  let n = Array.length a in
+  if n <= 1 then a
+  else
+    let a_even = Array.init (n / 2) (fun i -> a.(2 * i)) in
+    let a_odd = Array.init (n / 2) (fun i -> a.(2 * i + 1)) in
+    let fft_even = fft a_even in
+    let fft_odd = fft a_odd in
+    let w = ref 1.0 in
+    let w_n = exp (-2.0 *. Float.pi /. float_of_int n) in
+    Array.init n (fun i ->
+      if i < n / 2 then fft_even.(i) +. !w *. fft_odd.(i)
+      else begin
+        w := !w *. w_n;
+        fft_even.(i - n / 2) -. !w *. fft_odd.(i - n / 2)
+      end);;
+
+(* The IFFT function (inverse FFT) *)
+let ifft a =
+  let n = Array.length a in
+  let a_conj = Array.map (fun x -> Complex.conjugate x) a in
+  let result = fft a_conj in
+  Array.map (fun x -> Complex.conjugate x /. float_of_int n) result;;
+
+(* Perform pointwise multiplication in frequency domain *)
+let multiply_fft a b =
+  Array.mapi (fun i ai -> ai *. b.(i)) a;;
+(* Polynomial multiplication using FFT *)
+let multiply_polynomials p1 p2 =
+  let n = 2 * List.length p1 in
+  let p1_coeffs = poly_to_coeffs p1 n in
+  let p2_coeffs = poly_to_coeffs p2 n in
+
+  (* Perform FFT on both polynomials *)
+  let fft_p1 = fft p1_coeffs in
+  let fft_p2 = fft p2_coeffs in
+
+  (* Pointwise multiplication *)
+  let result_freq = multiply_fft fft_p1 fft_p2 in
+
+  (* Perform IFFT to get back to the time domain (polynomial coefficients) *)
+  let result_time = ifft result_freq in
+  coeffs_to_poly result_time;;
+
+
+(* Example usage *)
+let p1 = [(3, 2); (2, 1); (1, 0)];;  (* 3x^2 + 2x + 1 *)
+let p2 = [(1, 1); (4, 0)];;  (* x + 4 *)
+
+let product = multiply_polynomials p1 p2;
+
+(* OCaml code to compute DFT using FFT for fast multiplication of polynomials *)
+
+open Complex;;
+(* Function to split the list into even and odd indexed coefficients *)
+let split_even_odd lst =
+  let rec aux even odd idx = function
+    | [] -> (List.rev even, List.rev odd)
+    | h :: td -> 
+        if idx mod 2 = 0 then aux (h :: even) odd (idx + 1) td
+        else aux even (h :: odd) (idx + 1) td
+  in
+  aux [] [] 0 lst;;  (* Start with index 0 *)
+
+
+let convert_to_nRoot list n =
+  let pi = Float.pi in
+  let rec aux list i =
+    match list with
+    | [] -> []
+    | _::td -> 
+        let alpha = (-2.0) *. pi *. (float_of_int i) /. (float_of_int n) in
+        let complex_number = {re = cos(alpha); im = sin(alpha)} in
+        complex_number :: aux td (i + 1)
+  in
+  aux list 0;;
+  
+let sum_lists y0 roots y1 =
+  let rec sum_helper l1 l2 l3 acc =
+    match (l1, l2, l3) with
+    | ([], [], []) -> List.rev acc
+    | (x1::t1, x2::t2, x3::t3) -> sum_helper t1 t2 t3 ((x1 + (x2 * x3)) :: acc)
+    | _ -> failwith "Lists must have the same length"
+  in
+  sum_helper y0 roots y1 [];;
+
+let list_equations y0 roots y1 =
+  let n = List.length roots in
+  let rec aux k acc =
+    if k >= n / 2 then List.rev acc
+    else
+      let twiddle = List.nth roots k in
+      let y0_k = List.nth y0 k in
+      let y1_k = List.nth y1 k in
+      let first = Complex.add y0_k (Complex.mul twiddle y1_k) in
+      let second = Complex.sub y0_k (Complex.mul twiddle y1_k) in
+      aux (k + 1) ((first :: second :: acc))
+  in
+  aux 0 [];;
+
+let rec fft (coefficients : float list) =
+  let n = List.length coefficients in
+  (* Base case: only one element *)
+  if n = 1 then
+    [Complex.{re = List.hd coefficients; im = 0.0}]
+  else
+    let roots = convert_to_nRoot coefficients n in 
+    let even_coef, odd_coef = split_even_odd coefficients in
+    let y0 = fft even_coef in
+    let y1 = fft odd_coef in
+    list_equations y0 roots y1;;  (* Keep result as a list *)
+
+(* Function to compute roots of unity for IFFT, same as FFT but conjugated *)
+let convert_to_nRoot_conjugate n =
+  let pi = Float.pi in
+  let rec aux i =
+    if i >= n then []
+    else
+      let alpha = (2.0) *. pi *. (float_of_int i) /. (float_of_int n) in  (* Change sign here for IFFT *)
+      let complex_number = {re = cos(alpha); im = -.sin(alpha)} in  (* Conjugate of the root of unity *)
+      complex_number :: aux (i + 1)
+  in
+  aux 0;;
+
+(* Function to compute the IFFT *)
+let rec ifft (coefficients : Complex.t list) =
+  let n = List.length coefficients in
+  (* Base case: only one element *)
+  if n = 1 then
+    coefficients
+  else
+    let roots = convert_to_nRoot_conjugate n in  (* Use conjugated roots for IFFT *)
+    let even_coef, odd_coef = split_even_odd coefficients in
+    let y0 = ifft even_coef in
+    let y1 = ifft odd_coef in
+    let rec aux k acc =
+      if k >= n / 2 then List.rev acc
+      else
+        let twiddle = List.nth roots k in
+        let y0_k = List.nth y0 k in
+        let y1_k = List.nth y1 k in
+        let first = Complex.add y0_k (Complex.mul twiddle y1_k) in
+        let second = Complex.sub y0_k (Complex.mul twiddle y1_k) in
+        aux (k + 1) ((first :: second :: acc))
+    in
+    aux 0 [] 
+  |> List.map (fun x -> Complex.{re = x.re /. (float_of_int n); im = x.im /. (float_of_int n)});; (* Scale by n *)
+
+
+let fft_polynomial_multiply poly1 poly2 =
+  let n = List.length poly1 + List.length poly2 - 1 in
+  let m = ref 1 in
+  (* Find the next power of 2 greater than or equal to n *)
+  while !m < n do m := !m * 2 done;
+  let padded_poly1 = poly1 @ (List.init (!m - List.length poly1) (fun _ -> 0.0)) in
+  let padded_poly2 = poly2 @ (List.init (!m - List.length poly2) (fun _ -> 0.0)) in
+  
+  let fft_poly1 = fft padded_poly1 in
+  let fft_poly2 = fft padded_poly2 in
+  (* Step 2: Pointwise multiplication *)
+  let pointwise_mult = List.map2 Complex.mul fft_poly1 fft_poly2 in
+
+  (* Step 3: IFFT of the result *)
+  let result = ifft pointwise_mult in
+  (* Return the real part of the result, as the polynomial coefficients are real *)
+  List.map (fun x -> x.re) result;;
+
+let poly_to_coeffs monomes =
+  (* Find the highest degree (max exponent) *)
+  let max_degree = 
+    List.fold_left (fun acc (Mono (_, exp)) -> max acc exp) 0 monomes
+  in
+
+  (* Initialize a list of zeros for coefficients with length max_degree + 1 *)
+  let coeffs = Array.make (max_degree + 1) 0 in
+  
+  (* Loop over the monomes and add coefficients for each degree (exponent) *)
+  List.iter (fun (Mono (coef, exp)) -> coeffs.(exp) <- coeffs.(exp) + coef) monomes;
+  
+  (* Convert the array of coefficients to a list *)
+  Array.to_list coeffs
+;;
+let coeff_poly2_float = List.map float_of_int coeff_poly2;;

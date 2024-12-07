@@ -1,0 +1,227 @@
+(* Define the complex type *)
+type complex = { re : float; im : float }
+
+(* Convert to n-th roots of unity *)
+let convert_to_nRoot list n =
+  let pi = Float.pi in
+  let rec aux list i =
+    match list with
+    | [] -> []
+    | _::td -> 
+        let alpha = (-2.0) *. pi *. (float_of_int i) /. (float_of_int n) in
+        let complex_number = { re = cos(alpha); im = sin(alpha) } in
+        complex_number :: aux td (i + 1)
+  in
+  aux list 0;;
+
+(* Test Case: Computing 4th roots of unity *)
+let test_list = [1; 2; 3; 4]  (* The list doesn't affect the calculation, it is just for the loop *)
+
+let n = 4  (* 4th roots of unity *)
+
+let result = convert_to_nRoot test_list n;;
+
+(* Print the results *)
+List.iter (fun {re; im} -> Printf.printf "(%f, %f)\n" re im) result;;
+
+
+
+
+let y0 = [1; 2; 3; 4; 5; 6]
+let roots = [1; 1; 1; 1; 1; 1]
+let y1 = [6; 5; 4; 3; 2; 1]
+
+let sum_lists y0 roots y1 =
+  let y = Array.make (List.length roots) 0 in  (* Create a new array of size n initialized to 0 *)
+  for k = 0 to (n / 2) - 1 do
+    y.(k) <- (List.nth y0 k) + (List.nth roots k * List.nth y1 k);  (* First half of y *)
+    y.(k + n / 2) <- (List.nth y0 k) - (List.nth roots k * List.nth y1 k);  (* Second half of y *)
+  done;
+  y  (* Return the newly filled array *)
+
+
+open Complex;;
+let sum_lists y0 roots y1 =
+  let n = List.length roots in
+  let y = Array.make n (Complex.zero) in  (* Create a new array of complex numbers initialized to Complex.zero *)
+  
+  for k = 0 to (n / 2) - 1 do
+    (* First half: y[k] = y0[k] + roots[k] * y1[k] *)
+    y.(k) <- Complex.add (List.nth y0 k) (Complex.mul (List.nth roots k) (List.nth y1 k));
+    
+    (* Second half: y[k + n/2] = y0[k] - roots[k] * y1[k] *)
+    y.(k + n / 2) <- Complex.sub (List.nth y0 k) (Complex.mul (List.nth roots k) (List.nth y1 k));
+  done;
+  
+  y  (* Return the newly filled array of complex numbers *)
+
+
+let y1 = [Complex.({re=6.0; im=7.0}); Complex.({re=8.0; im=9.0}); Complex.({re=10.0; im=11.0})]
+let y0 = [Complex.({re=1.0; im=2.0}); Complex.({re=3.0; im=4.0}); Complex.({re=5.0; im=6.0})]
+let roots = [Complex.({re=1.0; im=0.0}); Complex.({re=0.0; im=1.0}); Complex.({re=1.0; im=1.0})]
+
+
+
+
+
+Old verison FFT:
+
+open Complex;;
+(* Function to split the list into even and odd indexed coefficients *)
+let split_even_odd lst =
+  let rec aux even odd idx = function
+    | [] -> (List.rev even, List.rev odd)
+    | h :: td -> 
+        if idx mod 2 = 0 then aux (h :: even) odd (idx + 1) td
+        else aux even (h :: odd) (idx + 1) td
+  in
+  aux [] [] 0 lst;;  (* Start with index 0 *)
+
+
+let convert_to_nRoot list n =
+  let pi = Float.pi in
+  let rec aux list i =
+    match list with
+    | [] -> []
+    | _::td -> 
+        let alpha = (-2.0) *. pi *. (float_of_int i) /. (float_of_int n) in
+        let complex_number = {re = cos(alpha); im = sin(alpha)} in
+        complex_number :: aux td (i + 1)
+  in
+  aux list 0;;
+  
+let sum_lists y0 roots y1 =
+  let rec sum_helper l1 l2 l3 acc =
+    match (l1, l2, l3) with
+    | ([], [], []) -> List.rev acc
+    | (x1::t1, x2::t2, x3::t3) -> sum_helper t1 t2 t3 ((x1 + (x2 * x3)) :: acc)
+    | _ -> failwith "Lists must have the same length"
+  in
+  sum_helper y0 roots y1 [];;
+
+let list_equations y0 roots y1 =
+  let n = List.length roots in
+  let rec aux k acc =
+    if k >= n / 2 then List.rev acc
+    else
+      let twiddle = List.nth roots k in
+      let y0_k = List.nth y0 k in
+      let y1_k = List.nth y1 k in
+      let first = Complex.add y0_k (Complex.mul twiddle y1_k) in
+      let second = Complex.sub y0_k (Complex.mul twiddle y1_k) in
+      aux (k + 1) ((first :: second :: acc))
+  in
+  aux 0 [];;
+
+let rec fft (coefficients : float list) =
+  let n = List.length coefficients in
+  (* Base case: only one element *)
+  if n = 1 then
+    [Complex.{re = List.hd coefficients; im = 0.0}]
+  else
+    let roots = convert_to_nRoot coefficients n in 
+    let even_coef, odd_coef = split_even_odd coefficients in
+    let y0 = fft even_coef in
+    let y1 = fft odd_coef in
+    list_equations y0 roots y1;;  (* Keep result as a list *)
+
+(* Function to compute roots of unity for IFFT, same as FFT but conjugated *)
+let convert_to_nRoot_conjugate n =
+  let pi = Float.pi in
+  let rec aux i =
+    if i >= n then []
+    else
+      let alpha = (2.0) *. pi *. (float_of_int i) /. (float_of_int n) in  (* Change sign here for IFFT *)
+      let complex_number = {re = cos(alpha); im = -.sin(alpha)} in  (* Conjugate of the root of unity *)
+      complex_number :: aux (i + 1)
+  in
+  aux 0;;
+
+(* Function to compute the IFFT *)
+let rec ifft (coefficients : Complex.t list) =
+  let n = List.length coefficients in
+  (* Base case: only one element *)
+  if n = 1 then
+    coefficients
+  else
+    let roots = convert_to_nRoot_conjugate n in  (* Use conjugated roots for IFFT *)
+    let even_coef, odd_coef = split_even_odd coefficients in
+    let y0 = ifft even_coef in
+    let y1 = ifft odd_coef in
+    let rec aux k acc =
+      if k >= n / 2 then List.rev acc
+      else
+        let twiddle = List.nth roots k in
+        let y0_k = List.nth y0 k in
+        let y1_k = List.nth y1 k in
+        let first = Complex.add y0_k (Complex.mul twiddle y1_k) in
+        let second = Complex.sub y0_k (Complex.mul twiddle y1_k) in
+        aux (k + 1) ((first :: second :: acc))
+    in
+    aux 0 [] 
+  |> List.map (fun x -> Complex.{re = x.re /. (float_of_int n); im = x.im /. (float_of_int n)});; (* Scale by n *)
+
+(*
+let fft_polynomial_multiply poly1 poly2 =
+  let n = List.length poly1 + List.length poly2 - 1 in
+  let m = ref 1 in
+  (* Find the next power of 2 greater than or equal to n *)
+  while !m < n do m := !m * 2 done;
+  let padded_poly1 = poly1 @ (List.init (!m - List.length poly1) (fun _ -> 0.0)) in
+  let padded_poly2 = poly2 @ (List.init (!m - List.length poly2) (fun _ -> 0.0)) in
+  
+  let fft_poly1 = fft padded_poly1 in
+  let fft_poly2 = fft padded_poly2 in
+  (* Step 2: Pointwise multiplication *)
+  let pointwise_mult = List.map2 Complex.mul fft_poly1 fft_poly2 in
+
+  (* Step 3: IFFT of the result *)
+  let result = ifft pointwise_mult in
+  (* Return the real part of the result, as the polynomial coefficients are real *)
+  List.map (fun x -> x.re) result;;
+*)
+let fft_polynomial_multiply poly1 poly2 =
+  let n = List.length poly1 + List.length poly2 - 1 in
+  let m = ref 1 in
+  (* Find the next power of 2 greater than or equal to n *)
+  while !m < n do m := !m * 2 done;
+
+  (* Pad the polynomials to the next power of 2 *)
+  let padded_poly1 = poly1 @ (List.init (!m - List.length poly1) (fun _ -> 0.0)) in
+  let padded_poly2 = poly2 @ (List.init (!m - List.length poly2) (fun _ -> 0.0)) in
+
+  (* Step 1: Compute FFT of both padded polynomials *)
+  let fft_poly1 = fft padded_poly1 in
+  let fft_poly2 = fft padded_poly2 in
+  
+  (* Step 2: Pointwise multiplication *)
+  let pointwise_mult = List.map2 Complex.mul fft_poly1 fft_poly2 in
+
+  (* Step 3: IFFT of the result *)
+  let result = ifft pointwise_mult in
+
+  (* Convert the result into a list of monomes *)
+  let convert_to_polynomial coeffs =
+    List.mapi (fun i coeff -> Mono (int_of_float coeff.re, i)) coeffs
+  in
+
+  (* Return the result as a list of monomes *)
+  convert_to_polynomial result;;
+
+let poly_to_coeffs monomes =
+  (* Find the highest degree (max exponent) *)
+  let max_degree = 
+    List.fold_left (fun acc (Mono (_, exp)) -> max acc exp) 0 monomes
+  in
+
+  (* Initialize a list of zeros for coefficients with length max_degree + 1 *)
+  let coeffs = Array.make (max_degree + 1) 0 in
+  
+  (* Loop over the monomes and add coefficients for each degree (exponent) *)
+  List.iter (fun (Mono (coef, exp)) -> coeffs.(exp) <- coeffs.(exp) + coef) monomes;
+  
+  (* Convert the array of coefficients to a list *)
+  Array.to_list coeffs
+;;
+let coeff_poly2_float = List.map float_of_int coeff_poly2;;
+
