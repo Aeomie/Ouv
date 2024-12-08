@@ -59,12 +59,6 @@
 (* Test the addition of two canonical polynomials *)
 poly_add (canonique poly) (canonique poly2);;
 poly_prod (canonique poly) (canonique poly2);;
-(*let rec poly_prod p1 p2 = 
-   match (p1, p2) with
-   | (_, []) -> []  (* Empty polynomial times another polynomial is empty *)
-   | ([], _) -> []  (* Same as above *)
-   | (Mono(p1_a, p1_b) :: reste), (Mono(p2_a, p2_b) :: reste2) ->
-       canonique (Mono(p1_a * p2_a, p1_b + p2_b) :: poly_prod reste reste2);;*)
 
 (* QS 1.5*)
 (* Expr type , rather than making a string that takes diff output like int add blabla
@@ -112,55 +106,6 @@ let rec arb2poly expr_tree =
   | _ -> [];;
   
                  
-(*let rec arb2poly expr_tree =
-   match expr_tree with
-   | Empty -> []  (* Empty tree corresponds to an empty polynomial *)
-   | Node (Int n, []) -> [Mono(n, 0)]  (* A constant becomes a monomial with exponent 0 *)
-   | Node (Var x, []) -> [Mono(1, 1)]  (* A variable is treated as x^1 *)
-   | Node (Add, children) -> 
-       let rec add_polys kids list = 
-         match kids with
-         | [] -> list
-         | hd :: tl -> 
-             let poly_hd = arb2poly hd in  (* Convert the subtree into a polynomial *)
-             add_polys tl (canonique (poly_hd @ list))  (* Add the polynomial to the list and recurse *)
-       in
-       add_polys children [];
-   | Node (Mul, [mul ; node]) -> poly_prod (canonique(expr_tree mul)) (canonique (expr_tree node))
-   | Node (Pow, [base; exp]) -> 
-        (* basically because in ocaml the return types have to be similar , the int returns a Mono(n,0)
-        and the n is what represents the integer , so we get that n and we make it into an expo.*)
-       let exp_poly = arb2poly exp in
-       match exp_poly with
-       | [Mono(e, _)] -> [Mono(1, e)]  (* Return Mono(1, e) in a list of monomials *)
-       | _ -> []  (* Return an empty list of monomials if the exponent isn't a simple integer *)*)
-
-
-(* old version
-let rec arb2poly expr_tree =
-    match expr_tree with
-    | Empty -> []  (* Empty tree corresponds to an empty polynomial *)
-    | Node (Int n, []) -> [Mono(n, 0)]  (* A constant becomes a monomial with exponent 0 *)
-    | Node (Var x, []) -> [Mono(1, 1)]  (* A variable is treated as x^1 *)
-    | Node (Add, children) -> 
-        let rec add_polys kids list = 
-            match kids with
-            | [] -> list
-            | hd :: tl -> 
-                let poly_hd = arb2poly hd in  (* Convert the subtree into a polynomial *)
-                add_polys tl (canonique (poly_hd @ list))  (* Add the polynomial to the list and recurse *)
-            in
-            add_polys children [];
-    | Node (Mul, [mul ; node]) -> poly_prod (canonique(expr_tree mul)) (canonique (expr_tree node));
-    | Node (Pow, [base; exp]) -> 
-        (* basically because in ocaml the return types have to be similar , the int returns a Mono(n,0)
-        and the n is what represents the integer , so we get that n and we make it into an expo.*)
-        let exp_poly = arb2poly exp in
-        match exp_poly with
-        | [Mono(e, _)] -> [Mono(1, e)]  (* Return Mono(1, e) in a list of monomials *)
-        | _ -> []  (* Return an empty list of monomials if the exponent isn't a simple integer *)
-*)
-
 (* QS 1.8 *)
 let rec remove_element n l = 
   match l with
@@ -199,13 +144,6 @@ type 'a btree =
   | Empty
   | Node of 'a btree * 'a * 'a btree;;
 
-(* Just to improve readability and removing redundance
-let rec insertABR elt tree = 
-  match tree with
-  | Empty -> Node(Empty, elt, Empty)
-  | Node (left, root, right) when elt < root -> Node(insertABR elt left, root, right)
-  | Node (left, root, right) -> Node(left, root, insertABR elt right);;
-  *)
 let rec insertABR elt tree = 
 match tree with
   | Empty -> Node(Empty, elt, Empty)
@@ -236,18 +174,6 @@ let rec etiquetage tree =
 let etiq_test = etiquetage abr_test;; 
 
 (* QS 1.12 *)
-
-(*let rec gen_arb tree = 
-   match tree with
-   | Add [left; right] when left = Add [subLeft; subRight] -> Add [subLeft; subRight; right]
-   | Add [left; right] when right = Add [subLeft; subRight] -> Add [left; subLeft; subRight]
-   | Mul [left; right] when left = Mul [subLeft; subRight] -> Mul [subLeft; subRight; right]
-   | Mul [left; right] when right = Mul [subLeft; subRight] -> Mul [left; subLeft; subRight]
-   | Pow [left; right] -> if right = Int 0 then Int 1 (* right child is always the Int in the Pow node *) 
-   | Add [left; right] when left = Var "x" -> Add [Pow [Var "x"; Int 1]; right]
-   | Add [left; right] when right = Var "x" -> Add [left; Pow [Var "x"; Int 1]]
-   | Mul [left; right] when left = Var "x" -> Mul [Pow [Var "x"; Int 1]; right]
-   | Mul [left; right] when right = Var "x" -> Mul [left; Pow [Var "x"; Int 1]]*)
 
 let rec gen_arb tree = 
   match tree with 
@@ -368,10 +294,7 @@ let rec fullTest3 l = match l with
   | [] -> [] 
   | h::t -> time add_n_tree_to_poly_divide h :: fullTest3 t;;
 
-(*let fullTestList = generate_trees 100
- let real1 = fullTest1 fullTestList
- let real2 = fullTest2 fullTestList
- let real3 = fullTest3 fullTestList*)
+
 (* QS 2.15 *)
 
 let prod_n_tree_to_poly_naive l =
@@ -407,10 +330,6 @@ let prod_n_tree_to_poly_divide l =
     | _ -> let (left, right) = split trees in poly_prod (divide_and_conquer left) (divide_and_conquer right)
   in divide_and_conquer l;;
 
-(* let testNaiveExo15 = prod_n_tree_to_poly_naive transformed_ABR_list2;; *)
-(* let testFusionExo15 = prod_n_tree_to_poly_fusion transformed_ABR_list2;; *)
-(* let testDivideExo15 = prod_n_tree_to_poly_divide transformed_ABR_list2;; *)
-
 let rec fullTest4 l = match l with
   | [] -> [] 
   | h::t -> time add_n_tree_to_poly_naive h :: fullTest1 t;;
@@ -443,6 +362,71 @@ let transformed_ABR_list3 = transform_ABR list_ABR3;;
 
 (* Karatsuba*)
 (* Multiplie le polynome poly par n  *)
+type monome = Mono of int * int;;
+type polynome = Poly of monome list;;
+
+let rec insert_poly list p =
+  match list with
+  | [] -> [p]  (* If the list is empty, insert the monomial p *)
+  | Mono(a, b) :: reste -> 
+      (* Direct pattern matching of p *)
+      match p with
+      | Mono(a_p, b_p) -> 
+          if a + a_p = 0 then 
+            reste (* if equals 0, ignore the monomial *)
+          else if b = b_p then (* If the powers are the same, add the coefficients *)
+            Mono(a + a_p, b) :: reste  (* Update the coefficient and keep the rest of the list *)
+          else
+            Mono(a, b) :: insert_poly reste p  (* Otherwise, keep the current monomial and recurse *)
+
+
+(* Additionne deux polynomes poly1 et poly2 *)
+let somme_poly poly1 poly2 =
+  let rec aux poly1 poly2 tmp =
+    match (poly1, poly2) with
+    | ([], []) -> List.rev tmp
+    | ([], poly) -> List.rev_append tmp poly
+    | (poly, []) -> List.rev_append tmp poly
+    | (Mono(a, b) :: t1, Mono(a2, b2) :: t2) when b = b2 ->
+        let a3 = a + a2 in  (* Integer addition for coefficients *)
+        if a3 = 0 then
+          aux t1 t2 tmp  (* Skip the term if the result is 0 *)
+        else
+          aux t1 t2 (Mono(a3, b2) :: tmp)
+    | (Mono(a, b) :: t1, Mono(a2, b2) :: t2) when b < b2 ->
+        aux t1 poly2 (Mono(a, b) :: tmp)
+    | (Mono(a, b) :: t1, Mono(a2, b2) :: t2) ->
+        aux poly1 t2 (Mono(a2, b2) :: tmp)
+  in
+  aux poly1 poly2 [];;
+
+(* Canonical form function to combine terms with the same power, sort by power and remove the elements with a coeff = 0 *)
+(*corrected version*)
+let canonique p = 
+  let rec aux_func p list = 
+    match p with
+    | [] -> list
+    | Mono(a, b) :: t -> 
+        (* Combine the monomial with the list and recurse *)
+        aux_func t (somme_poly list [Mono(a, b)])
+  in 
+  (* Combine like terms and then sort the list by degree in descending order *)
+  List.sort (fun (Mono(_, d1)) (Mono(_, d2)) -> compare d2 d1) 
+    (aux_func p []);;
+
+(* QS 1.4: Multiplication of two polynomials *)
+let rec poly_prod p1 p2 =
+  let rec apply_prod monome polynome = 
+    match monome, polynome with
+    | _,[] -> [] 
+    | Mono(p1_a, p1_b), Mono(p2_a, p2_b) :: t 
+      -> Mono(p1_a * p2_a, p1_b + p2_b) :: apply_prod monome t
+  in 
+  match p1 with
+  | [] -> []
+  | h::t -> somme_poly (apply_prod h p2) (poly_prod t p2);;
+
+
 let multn poly n =
   let rec aux poly tmp =
     match poly with
@@ -450,7 +434,6 @@ let multn poly n =
     | Mono(a, b) :: t -> aux t (Mono(a * n, b) :: tmp)
   in aux poly [];;
 
-(* Exponentiate the degree of each term in the polynomial *)
 let multExpo poly n = 
   let rec aux poly tmp = 
     match poly with
@@ -458,81 +441,50 @@ let multExpo poly n =
     | Mono(a,b) :: t -> aux t (Mono(a, b + n) :: tmp)
   in aux poly [];;
 
-(* retrieves highest degree in poly*)
-let degre poly = 
-  let sorted = List.rev (  poly) in
-  match sorted with
-  | [] -> -1           (* If the list is empty, return None *)
-  | Mono(_, b) :: _ -> b;;  (* Get the highest degree (b) from the first element *)
 
-(* Helper function to split a polynomial into two halves *) 
-(*
-let split_poly poly k =
-  let rec aux left right = function
-    | [] -> (List.rev left, List.rev right)  (* When the input list is empty, return the reversed left and right parts *)
-    | Mono(a, b) :: t ->  (* For each monomial, check its degree b *)
-        if b < k then     (* If the degree is less than k, add it to the left part *)
-          aux (Mono(a,b) :: left) right t
-        else              (* If the degree is greater or equal to k, add it to the right part *)
-          aux left (Mono(a,b) :: right) t
-  in aux [] [] poly  (* Start the recursion with two empty lists (left and right) *)
-*)
-(* Helper function to split a polynomial into two halves based on number of terms *)
-let split_poly poly k =
-  let rec aux left right n = function
-    | [] -> (List.rev left, List.rev right)  (* Return the reversed left and right parts when done *)
-    | Mono(a, b) :: t when n < k -> aux (Mono(a, b) :: left) right (n + 1) t
-    | Mono(a, b) :: t -> aux left (Mono(a, b) :: right) (n + 1) t
+let degre poly =
+  let rec aux max = function
+    | [] -> max
+    | Mono(_, b) :: next -> 
+        let new_max = if b > max then b else max in
+        aux new_max next
   in
-  aux [] [] 0 poly  (* Start the recursion with two empty lists and count from 0 *)
+  aux (0) poly;;
+  
 
-(*
-(* Karatsuba algorithm for multiplying polynomials *)
+let diff_poly poly1 poly2 = 
+  somme_poly (poly1) (multn poly2 (-1));;
+
+
+let split_poly poly k =
+  let rec aux poly left right =
+      match poly with
+      | [] -> (List.rev left, List.rev right)
+      | Mono(a, b) :: restpoly when b < k -> aux restpoly (Mono(a, b) :: left) right 
+      | Mono(a, b) :: restpoly when b >= k-> aux restpoly left (Mono(a, b-k) :: right) 
+      | _ -> failwith "Unexpected case in split_poly";
+  in
+  aux poly [] [];; 
+  
+
+
 let rec mult_karatsuba poly1 poly2 =
-  (* Base case for empty polynomials (degree 0) *)
-  if (degre poly1 = 0 || degre poly2 = 0) then
-    [Mono(0,0)] (* Direct multiplication for degree 1 polynomials *)
-  (* Base case for degree 1 polynomials (single monomial multiplication) *)
-  else if (degre poly1 = 1 && degre poly2 = 1) then
-    poly_prod poly1 poly2  (* Direct multiplication for degree 1 polynomials *)
+  if(degre poly1 = 0 || degre poly2 = 0 ) then 
+    poly_prod poly1 poly2 
   else
-    let k = max (degre poly1) (degre poly2) in  (* Determine the degree *)
-    let (a0, a1) = split_poly poly1 (k / 2) in
-    let (b0, b1) = split_poly poly2 (k / 2) in
-    let c1 = mult_karatsuba a0 b0 in  (* Recursive multiplication for lower half *) (* to do a0*b0 equation *)
-    let c2 = mult_karatsuba a1 b1 in  (* Recursive multiplication for upper half *) (* to do a1*b1 equation *)
-    let c3 = poly_add a1 a0 in  (* Sum a1 + a0 *)
-    let c4 = poly_add b1 b0 in  (* Sum b1 + b0 *)
-    let u = mult_karatsuba c3 c4 in  (* Multiply the sums *) (* to do b1 + b0 *)
-    let c5 = poly_add (poly_add u (multn c2 (-1))) (multn c1 (-1)) (* to do  (a1 + a0) (b1 + b0) - a1b1 - a0b0*) in
-    let c6 = multExpo c2 (k / 2) in (*this is the a1b1 * x *)
-    poly_add (poly_add c5 c6 ) c1;; (* adding all results*)
-
-*)
-(* Karatsuba algorithm for multiplying polynomials *)
-let rec mult_karatsuba poly1 poly2 =
-  (* Base case for empty polynomials (degree 0) *)
-  if(degre poly1 = -1 || degre poly2 = -1 ) then 
-    []
-  else if (degre poly1 = 0 || degre poly2 = 0) then
-    poly_prod poly1 poly2 (* Direct multiplication for degree 1 polynomials *)
-  (* Base case for degree 1 polynomials (single monomial multiplication) *)
-  else if (degre poly1 = 1 && degre poly2 = 1) then
-    poly_prod poly1 poly2  (* Direct multiplication for degree 1 polynomials *)
-  else
-    let k = max (degre poly1) (degre poly2) in  (* Determine the degree *)
-    let half = k / 2 in
-    let (a0, a1) = split_poly poly1 half in
-    let (b0, b1) = split_poly poly2 half in
-    let c1 = mult_karatsuba a0 b0 in  (* Recursive multiplication for lower half *)
-    let c2 = mult_karatsuba a1 b1 in  (* Recursive multiplication for upper half *)
-    let c3 = poly_add a1 a0 in  (* Sum a1 + a0 *)
-    let c4 = poly_add b1 b0 in  (* Sum b1 + b0 *)
-    let u = mult_karatsuba c3 c4 in  (* Multiply the sums *)
-    let c5 = poly_add (poly_add u (multn c2 (-1))) (multn c1 (-1)) in
-    let c6 = multExpo c2 half in (* Shift the a1b1 result *)
-    poly_add (poly_add c5 c6) c1;; (* Add all results together *)
-
+    let k =
+      let max_val = max (degre poly1) (degre poly2) in
+    if max_val mod 2 = 0 then max_val else max_val+1 in
+    Printf.printf"k val %d \n"k; 
+    let (a0, a1) = split_poly poly1 (k/2) in
+    let (b0, b1) = split_poly poly2 (k/2) in
+    let c1 = mult_karatsuba a0 b0 in (* a0*b0 *)
+    let c2 = mult_karatsuba a1 b1 in (* a1*b1 *)
+    let c3 = somme_poly a1 a0 in (* a1 + a0 *)
+    let c4 = somme_poly b1 b0 in (* b1 + b0 *)
+    let u = mult_karatsuba c3 c4 in (* (a1 + a0)* (b1 + b0) *)
+    let c5 = diff_poly (diff_poly u c2) c1 in
+    somme_poly (somme_poly (multExpo c2 (k)) (multExpo c5 (k/2))) c1 (* final sum : (a1*b1* x^k) + (result of the parantheses) + a0*b0 *)
 
 let poly2 = [
   Mono (2, 4);  (* 2x^4 *)
@@ -544,12 +496,76 @@ let poly2 = [
 
 let poly1 = [
   Mono (3, 6);  (* 3x^6 *)
-  Mono (5, 5); g (* 5x^5 *)
+  Mono (5, 5); (* 5x^5 *)
   Mono (-2, 4); (* -2x^4 *)
   Mono (4, 3);  (* 4x^3 *)
   Mono (1, 1);  (* 1x^1 *)
   Mono (7, 0);  (* 7 *)
 ];;
+
+
+let poly3 = [
+  Mono (4, 3);  (* 4x^3 *)
+  Mono (3, 2); (* 3x^2 *)
+  Mono (2, 1);  (* 2x^1 *)
+  Mono (1, 0);  (* 1*x^0 *)
+];;
+
+let poly4 = [
+  Mono (1, 3);  (* 3x^6 *)
+  Mono (2, 2); (* 5x^5 *)
+  Mono (3, 1); (* -2x^4 *)
+  Mono (4, 0);  (* 4x^3 *)
+];;
+
+let poly5 = [
+  Mono (2, 2);  (* 2x^2 *)
+  Mono (3, 1);  (* 3x *)
+  Mono (1, 0);  (* 1 *)
+];;
+
+let poly6 = [
+  Mono (1, 2);  (* x^2 *)
+  Mono (1, 1);  (* x *)
+  Mono (4, 0);  (* 4 *)
+];;
+let poly7 = [
+  Mono (4, 5);  (* 4x^5 *)
+  Mono (3, 4);  (* 3x^4 *)
+  Mono (2, 3);  (* 2x^3 *)
+  Mono (1, 2);  (* 1x^2 *)
+  Mono (7, 1);  (* 7x *)
+  Mono (1, 0);  (* 1 *)
+];;
+
+let poly8 = [
+  Mono (3, 6);  (* 3x^6 *)
+  Mono (2, 5);  (* 2x^5 *)
+  Mono (1, 4);  (* 1x^4 *)
+  Mono (5, 3);  (* 5x^3 *)
+  Mono (1, 2);  (* 1x^2 *)
+  Mono (6, 0);  (* 6 *)
+];;
+
+let poly9 = [
+  Mono (1, 7);  
+  Mono (66, 5);  
+  Mono (1, 4);  
+  Mono (1, 3);
+  Mono (15, 2);  
+  Mono (2, 1); 
+  Mono(2,0);
+];;
+let poly10 = [
+  Mono (-20, 7);  
+  Mono (1, 6);  
+  Mono (4, 5);  
+  Mono (21, 4);
+  Mono (5, 3);  
+  Mono (2, 2); 
+  Mono(1,0);
+];;
+
 (* QS 2.17 & QS 2.18 : mêmes méthodes que 2.14 et 2.15 *) 
 
 let fullTestList_v2a = transform_ABR (generate_n_abr_v2 7);;
@@ -570,19 +586,31 @@ let real6_v2 = time prod_n_tree_to_poly_divide fullTestList_v2a;;
 
 (* FFT algorithm*)
 open Complex
+(* Part 1 *)
+type monome = Mono of int * int;;
+type polynome = Poly of monome list;;
+
+type expr = 
+  | Int of int          (* Represents a number *) 
+  | Var of string
+  | Pow of expr list 
+  | Add of expr list
+  | Mul of expr list;; 
 
 (* Function to calculate the next power of 2 greater than or equal to n *)
 let nextpowof2 n =
-   let x = n in 
-   let x = x lor (Int.shift_right x 1) in 
-   let x = x lor (Int.shift_right x 2) in
-   let x = x lor (Int.shift_right x 4) in 
-   let x = x lor (Int.shift_right x 8) in 
-   let x = x lor (Int.shift_right x 16) in 
-   x + 1
+  let x = n in 
+  let x = x lor (Int.shift_right x 1) in 
+  let x = x lor (Int.shift_right x 2) in
+  let x = x lor (Int.shift_right x 4) in 
+  let x = x lor (Int.shift_right x 8) in 
+  let x = x lor (Int.shift_right x 16) in 
+  x + 1
+ 
 
 (* Fast Fourier Transform (FFT) *)
 let rec fft a n w =
+  Printf.printf"n : %d \n"n;
    if w = one || n = 1 then a else
       let ae = Array.init (n / 2) (fun i -> a.(2 * i)) in
       let ao = Array.init (n / 2) (fun i -> a.(2 * i + 1)) in
@@ -595,56 +623,151 @@ let rec fft a n w =
       a
 
 
-(* Multiply two polynomials represented as lists of coefficients *)
-let multiply_pol vec1 vec2 = 
-  let n1 = List.length vec1 in
-  let n2 = List.length vec2 in
+  (* Multiply two polynomials represented as lists of coefficients *)
+  let multiply_pol vec1 vec2 = 
+    let n1 = List.length vec1 in
+    let n2 = List.length vec2 in
 
-  (* Evaluating the degree of the product polynomial *)
-  let n = nextpowof2 (n1 + n2 - 1) in  (* subtract 1 because n1 + n2 gives degree + 1 *)
+    (* Evaluating the degree of the product polynomial *)
+    let n = nextpowof2 (n1 + n2 - 1) in  (* subtract 1 because n1 + n2 gives degree + 1 *)
 
-  let a1 = Array.make n {re = 0.0; im = 0.0} in
-  let b1 = Array.make n {re = 0.0; im = 0.0} in
+    (* Print the value of n *)
+    Printf.printf "The value of n is: %d\n" n;
 
-  (* First polynomial *)
-  for i = 0 to n1 - 1 do
-    Printf.printf "Element of 1st polynomial at %d: is %f\n" i (List.nth vec1 i);
-    a1.(i) <- {re = List.nth vec1 i; im = 0.0};
-  done;
+    let a1 = Array.make n {re = 0.0; im = 0.0} in
+    let b1 = Array.make n {re = 0.0; im = 0.0} in
 
-
-  (* Second polynomial *)
-  for i = 0 to n2 - 1 do 
-    Printf.printf "Element of 2nd polynomial at %d: is %f\n" i (List.nth vec2 i);
-    b1.(i) <- {re = List.nth vec2 i; im = 0.0};
-  done;
-
-  (* Evaluating omega w *)
-  let theta = 2.0 *. Float.pi /. float_of_int n in
-  let w = {re = cos theta; im = sin theta} in 
-
-  (* FFT of polynomial gives Value Repn of each polynomial *)
-  let a2 = fft a1 n w in
-  let b2 = fft b1 n w in 
-
-  (* Evaluating Product polynomial in Value Repn *)
-  let c1 = Array.init n (fun i -> mul a2.(i) b2.(i)) in
-
-  (* Interpolation: Value -> Coeff *)
-  let win = conj w in 
-  let c2 = fft c1 n win in
-  let d = Array.map (fun c -> {re = c.re /. (float_of_int n); im = 0.}) c2 in
-
-  let poly = 
-    Array.to_list (Array.mapi (fun i c -> 
-      if abs_float c.re >= 0.001 then Mono(int_of_float c.re, i) else Mono(0, 0)) d)
-    |> List.filter (fun m -> match m with Mono(0, 0) -> false | _ -> true) in
+    (* First polynomial *)
+    for i = 0 to n1 - 1 do
+      Printf.printf "Element of 1st polynomial at %d: is %f\n" i (List.nth vec1 i);
+      a1.(i) <- {re = List.nth vec1 i; im = 0.0};
+    done;
 
 
-  poly;
+    (* Second polynomial *)
+    for i = 0 to n2 - 1 do 
+      Printf.printf "Element of 2nd polynomial at %d: is %f\n" i (List.nth vec2 i);
+      b1.(i) <- {re = List.nth vec2 i; im = 0.0};
+    done;
+
+    Printf.printf "filled vectors";
+    (* Evaluating omega w *)
+    let theta = 2.0 *. Float.pi /. float_of_int n in
+    let w = {re = cos theta; im = sin theta} in 
+    Printf.printf "Init w";
+    (* FFT of polynomial gives Value Repn of each polynomial *)
+    let a2 = fft a1 n w in
+    let b2 = fft b1 n w in 
+
+    Printf.printf "Recursion passed";
+    (* Evaluating Product polynomial in Value Repn *)
+    let c1 = Array.init n (fun i -> mul a2.(i) b2.(i)) in
+
+    (* Interpolation: Value -> Coeff *)
+    let win = conj w in 
+    let c2 = fft c1 n win in
+    let d = Array.map (fun c -> {re = c.re /. (float_of_int n); im = 0.}) c2 in
+
+    let poly = 
+      Array.to_list (Array.mapi (fun i c -> 
+        if abs_float c.re >= 0.001 then Mono(int_of_float c.re, i) else Mono(0, 0)) d)
+      |> List.filter (fun m -> match m with Mono(0, 0) -> false | _ -> true) in
+
+    poly;
 
 (* Example usage *)
 
-let vec1 = [1.0; 2.0; 3.0]
-let vec2 = [4.0; 5.0; 6.0]
-multiply_pol vec1 vec2
+let vec1 = [1.0; 2.0; 3.0];
+let vec2 = [4.0; 5.0; 6.0];
+let poly_vec3 = [Mono(1, 0); Mono(2, 1); Mono(3, 2)];
+let poly_vec4 = [Mono(4, 0); Mono(5, 1); Mono(6, 2)];
+
+let poly2 = [
+  Mono (2, 4);  (* 2x^4 *)
+  Mono (-3, 3); (* -3x^3 *)
+  Mono (6, 2);  (* 6x^2 *)
+  Mono (8, 1);  (* 8x^1 *)
+  Mono (-5, 0); (* -5 *)
+];;
+
+let poly1 = [
+  Mono (3, 6);  (* 3x^6 *)
+  Mono (5, 5); (* 5x^5 *)
+  Mono (-2, 4); (* -2x^4 *)
+  Mono (4, 3);  (* 4x^3 *)
+  Mono (1, 1);  (* 1x^1 *)
+  Mono (7, 0);  (* 7 *)
+];;
+
+let vec1 = [7.; 1.; 0.; 4.; -2.; 5.; 3.];
+let vec2 = [-5.; 8.; 6.; -3.; 2.];
+multiply_pol vec1 vec2;
+
+(*
+let get_coeffs monomes =
+  List.map (fun (Mono (coeff, _degree)) -> float_of_int coeff) monomes;;
+*)
+let get_coeffs monomes =
+  let max_degree = List.fold_left (fun max_deg (Mono (_, degree)) -> max max_deg degree) 0 monomes in
+  let coeffs = Array.make (max_degree + 1) 0.0 in
+  List.iter (fun (Mono (coeff, degree)) -> coeffs.(degree) <- float_of_int coeff) monomes;
+  Array.to_list coeffs
+;;
+
+(* QS 1.7*)
+let rec arb2poly_FTT expr_tree =
+  match expr_tree with 
+  | Int n -> [Mono(n, 0)]
+  | Var x -> [Mono(1, 1)] 
+  | Pow [base; Int n] -> [Mono(1, n)]
+  | Add children -> 
+      let rec add_polys kids list = 
+        match kids with
+        | [] -> list
+        | h :: t -> 
+            let poly_hd = arb2poly_FTT h in  (* Convert the subtree into a polynomial *)
+            add_polys t (canonique (poly_hd @ list))  (* Add the polynomial to the list and recurse *)
+                                                      
+      in
+      add_polys children [];
+  | Mul children -> 
+      let rec prod_polys kids = 
+        match kids with
+        | [] -> [Mono(1, 0)]
+        | h :: t -> 
+            let poly_hd = arb2poly_FTT h in  (* Convert the subtree into a polynomial *)
+            multiply_pol (get_coeffs poly_hd) (get_coeffs (prod_polys t))  (* Add the polynomial to the list and recurse *)
+      in
+      prod_polys children
+  | _ -> [];;
+
+
+
+  (* QS 1.7 *)
+let rec arb2poly expr_tree =
+  match expr_tree with 
+  | Int n -> [Mono(n, 0)]  (* Integer expression converts to constant polynomial *)
+  | Var x -> [Mono(1, 1)]  (* Variable x converts to polynomial x *)
+  | Pow [base; Int n] -> [Mono(1, n)]  (* Power expression: x^n is represented as [Mono(1, n)] *)
+  | Add children -> 
+      (* Add the polynomials from the child expressions *)
+      let rec add_polys kids list = 
+        match kids with
+        | [] -> list
+        | h :: t -> 
+            let poly_hd = arb2poly h in  (* Convert the subtree into a polynomial *)
+            add_polys t (canonique (poly_hd @ list))  (* Combine the polynomials *)
+      in
+      add_polys children []
+  | Mul children -> 
+      (* Multiply the polynomials from the child expressions *)
+      let rec prod_polys kids = 
+        match kids with
+        | [] -> [Mono(1, 0)]  (* Base case: empty multiplication is 1 (constant) *)
+        | h :: t -> 
+            let poly_hd = arb2poly h in  (* Convert the subtree into a polynomial *)
+            let remaining_poly = prod_polys t in
+            multiply_pol (get_coeffs poly_hd) (get_coeffs ( remaining_poly))  (* Use multiply_pol to combine the polynomials *)
+      in
+      prod_polys children
+  | _ -> []  (* Handle unsupported cases *)
