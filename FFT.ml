@@ -39,7 +39,7 @@ let somme_poly poly1 poly2 =
 
 (* Canonical form function to combine terms with the same power, sort by power and remove the elements with a coeff = 0 *)
 (*corrected version*)
-let canoniqueK p = 
+let canonique p = 
   let rec aux_func p list = 
     match p with
     | [] -> list
@@ -61,7 +61,7 @@ let rec poly_prod p1 p2 =
   in 
   match p1 with
   | [] -> []
-  | h::t -> somme_poly (apply_prod h p2) (poly_prodK t p2);;
+  | h::t -> somme_poly (apply_prod h p2) (poly_prod t p2);;
 
 
 
@@ -85,7 +85,7 @@ match expr_tree with
       | [] -> list
       | h :: t -> 
           let poly_hd = arb2poly h in  (* Convert the subtree into a polynomial *)
-          add_polys t (canoniqueK (poly_hd @ list))  (* Add the polynomial to the list and recurse *)
+          add_polys t (canonique (poly_hd @ list))  (* Add the polynomial to the list and recurse *)
                                                     
     in
     add_polys children [];
@@ -268,7 +268,7 @@ let rec arb2poly_FFT expr_tree =
         | [] -> list
         | h :: t -> 
             let poly_hd = arb2poly_FFT h in  (* Convert the subtree into a polynomial *)
-            add_polys t (canoniqueK (poly_hd @ list))  (* Add the polynomial to the list and recurse *)
+            add_polys t (canonique (poly_hd @ list))  (* Add the polynomial to the list and recurse *)
                                                       
       in
       add_polys children [];
@@ -457,28 +457,28 @@ let rec generate_trees n =
   if n = 1000 then [transform_ABR (generer_n_ABR n 20)]
   else (transform_ABR (generer_n_ABR n 20)) :: generate_trees (n+100);; 
 
-let prod_FFT l =
-  let rec list2polyList treeList =
+let rec list2polyList treeList count =
   match treeList with
   | [] -> []
-  | h::t -> (arb2poly_FFT h) :: (list2polyList t)
-  in
-let rec prodPolyList treeList =
+  | h::t -> 
+      (* Print the current tree number *)
+      Printf.printf "FFT trees2polyList : Tree %d\n" count;
+      (* Process the current tree element and recurse with incremented count *)
+      (arb2poly_FFT h) :: (list2polyList t (count + 1));;
+
+let rec prod_FFT_List treeList count = 
   match treeList with
   | [] -> []
   | [h] -> h
-  | h::t -> mult_FFT h (prodPolyList t)
-  in prodPolyList (list2polyList l);;
-
-let rec prodFFTTest l = match l with
-  | [] -> [] 
-  | h::t -> time prod_FFT h :: prodFFTTest t;;
-
+  | h::t -> 
+    (* Print before multiplying, showing current state of treeList *)
+    Printf.printf "Multiplying polynomials with FFT at position %d\n" count;
+    (* Perform multiplication and recurse *)
+    mult_FFT h (prod_FFT_List t count);;
 
 
+let arb1 = transform_ABR (generer_n_ABR 100 20);;
 
-  let arb1 = transform_ABR (generer_n_ABR 100 20);;
+let result = list2polyList arb1 0;;
 
-  Printf.printf("Duration for prod naive\n");;
-  let timeProdNaive1 = printTime prod_naive arb1;;
-  
+let result2 = prod_FFT_List result 0;;

@@ -426,18 +426,6 @@ let rec list2polyList treeList =
   | [] -> []
   | h::t -> (arb2poly_karatsuba h) :: (list2polyList t);;
 
-let prod_karatsuba l =
-  let rec list2polyList treeList =
-  match treeList with
-  | [] -> []
-  | h::t -> (arb2poly_karatsuba h) :: (list2polyList t)
-  in
-  let rec prodPolyList treeList =
-    match treeList with
-    | [] -> []
-    | [h] -> h
-    | h::t -> mult_karatsuba h (prodPolyList t) karatsuba_threshold
-    in prodPolyList (list2polyList l);;
   
 
 let printTime f x =
