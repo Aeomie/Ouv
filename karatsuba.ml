@@ -63,6 +63,50 @@ let rec poly_prod p1 p2 =
   | h::t -> somme_poly (apply_prod h p2) (poly_prod t p2);;
 
 
+
+type expr = 
+| Int of int          (* Represents a number *) 
+| Var of string
+| Pow of expr list 
+| Add of expr list
+| Mul of expr list;; 
+
+(*QS 1.6*)
+let expr_tree =
+Add [
+  Mul [Int 123; Pow [Var "x";Int 1]];
+  Int 42;
+  Pow [Var "x";Int 3]
+];;
+            
+(* QS 1.7*)
+let rec arb2poly expr_tree =
+match expr_tree with 
+| Int n -> [Mono(n, 0)]
+| Var x -> [Mono(1, 1)] 
+| Pow [base; Int n] -> [Mono(1, n)]
+| Add children -> 
+    let rec add_polys kids list = 
+      match kids with
+      | [] -> list
+      | h :: t -> 
+          let poly_hd = arb2poly h in  (* Convert the subtree into a polynomial *)
+          add_polys t (canonique (poly_hd @ list))  (* Add the polynomial to the list and recurse *)
+                                                    
+    in
+    add_polys children [];
+| Mul children -> 
+    let rec prod_polys kids = 
+      match kids with
+      | [] -> [Mono(1, 0)]
+      | h :: t -> 
+          let poly_hd = arb2poly h in  (* Convert the subtree into a polynomial *)
+          poly_prod poly_hd (prod_polys t)  (* Add the polynomial to the list and recurse *)
+    in
+    prod_polys children
+| _ -> [];;
+  
+
 let multn poly n =
   let rec aux poly tmp =
     match poly with
@@ -182,3 +226,65 @@ let poly8 = [
   Mono (1, 2);  (* 1x^2 *)
   Mono (6, 0);  (* 6 *)
 ];;
+
+let poly9 = [
+  Mono (1, 7);  
+  Mono (66, 5);  
+  Mono (1, 4);  
+  Mono (1, 3);
+  Mono (15, 2);  
+  Mono (2, 1); 
+  Mono(2,0);
+];;
+let poly10 = [
+  Mono (-20, 7);  
+  Mono (1, 6);  
+  Mono (4, 5);  
+  Mono (21, 4);
+  Mono (5, 3);  
+  Mono (2, 2); 
+  Mono(1,0);
+];;
+
+(* QS 1.7*)
+let rec arb2poly_karatsuba expr_tree =
+  match expr_tree with 
+  | Int n -> [Mono(n, 0)]
+  | Var x -> [Mono(1, 1)] 
+  | Pow [base; Int n] -> [Mono(1, n)]
+  | Add children -> 
+      let rec add_polys kids list = 
+        match kids with
+        | [] -> list
+        | h :: t -> 
+            let poly_hd = arb2poly_karatsuba h in  (* Convert the subtree into a polynomial *)
+            add_polys t (canonique (poly_hd @ list))  (* Add the polynomial to the list and recurse *)
+                                                      
+      in
+      add_polys children [];
+  | Mul children -> 
+      let rec prod_polys kids = 
+        match kids with
+        | [] -> [Mono(1, 0)]
+        | h :: t -> 
+            let poly_hd = arb2poly_karatsuba h in  (* Convert the subtree into a polynomial *)
+            mult_karatsuba poly_hd (prod_polys t)  (* Add the polynomial to the list and recurse *)
+      in
+      prod_polys children
+  | _ -> [];;
+
+let tree1 =
+  Add [
+    Mul [Int 123; Pow [Var "x";Int 1]];
+    Int 42;
+    Pow [Var "x";Int 3]
+  ];;
+let tree2 =
+  Add
+    [Var "x";
+      Add
+        [Mul
+          [Add [Int 34; Mul [Mul [Int (-5); Var "x"]; Mul [Int 80; Var "x"]]];
+            Int 21];
+        Mul [Var "x"; Add [Int 44; Pow [Var "x"; Int 69]]]]];;
+
