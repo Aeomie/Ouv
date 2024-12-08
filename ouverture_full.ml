@@ -362,8 +362,6 @@ let transformed_ABR_list3 = transform_ABR list_ABR3;;
 
 (* Karatsuba*)
 (* Multiplie le polynome poly par n  *)
-type monome = Mono of int * int;;
-type polynome = Poly of monome list;;
 
 let rec insert_poly list p =
   match list with
