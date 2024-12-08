@@ -128,7 +128,9 @@ let get_coeffs monomes =
   Array.to_list coeffs
 ;;
       
-let mult_FFT vec1 vec2 = 
+let mult_FFT poly1 poly2 = 
+  let vec1 = get_coeffs poly1 in  (* changing poly into vectors of floats*)
+  let vec2 = get_coeffs poly2 in
   (* Reading the inputs *)
   let n1 = List.length vec1 in
   let n2 = List.length vec2 in
@@ -140,13 +142,11 @@ let mult_FFT vec1 vec2 =
   let b1 = Array.make n { re = 0.0; im = 0.0 } in
 
   (* First polynomial *)
-  print_endline "Coefficient vector of 1st polynomial :";
   for i = 0 to n1 - 1 do 
       a1.(i) <- { re = List.nth vec1 i; im = 0.0 };
   done;
 
   (* Second polynomial *)
-  print_endline "Coefficient vector of 2nd polynomial :";
   for i = 0 to n2 - 1 do 
       b1.(i) <- { re = List.nth vec2 i; im = 0.0 };
   done;
@@ -278,7 +278,7 @@ let rec arb2poly_FFT expr_tree =
         | [] -> [Mono(1, 0)]
         | h :: t -> 
             let poly_hd = arb2poly_FFT h in  (* Convert the subtree into a polynomial *)
-            mult_FFT (get_coeffs(poly_hd)) (get_coeffs(prod_polys t))  (* Add the polynomial to the list and recurse *)
+            mult_FFT (poly_hd) (prod_polys t)  (* Add the polynomial to the list and recurse *)
       in
       prod_polys children
   | _ -> [];;
